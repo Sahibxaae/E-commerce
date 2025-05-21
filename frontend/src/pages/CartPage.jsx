@@ -1,8 +1,55 @@
-import React, { Fragment } from 'react'
-
+import React, { Fragment, useState } from 'react'
+import { Link } from "react-router";
 const CartPage = ({cartItems,setCartItems}) => {
-  return (
-     <div className="container container-fluid">
+    const[complete,setComplete] = useState(false);
+    // increasing quantity
+      function increaseQty(item) {
+        if (item.product.stock == item.qty) {
+          return;
+        }
+        const updatedItems = cartItems.map((i)=>{
+            if(i.product._id == item.product._id){
+                i.qty++
+            }
+            return i;
+        })
+        setCartItems(updatedItems);
+      }
+    
+      // decreasing quantity
+      function decreaseQty(item) {
+        if (item.qty == 1) {
+          return;
+        } const updatedItems = cartItems.map((i)=>{
+            if(i.product._id == item.product._id){
+                i.qty--
+            }
+            return i;
+        })
+        setCartItems(updatedItems);
+      }
+    //   remove item
+    function removeItem(item){
+        const updatedItems = cartItems.filter((i)=>{
+            if(i.product._id != item.product._id){
+                return true;
+            }
+        })
+        setCartItems(updatedItems);
+    }
+    function placeOrderHandler(){
+        fetch(`${import.meta.env.VITE_API_URL}/order/`,{
+            method:'POST',
+            headers: {'Content-Type': 'application/json'},
+            body:JSON.stringify(cartItems)
+        })
+        .then(()=>{
+             setCartItems([]);
+             setComplete(true);
+        })
+    }
+  return  cartItems.length > 0 ?
+     <Fragment><div className="container container-fluid">
         <h2 className="mt-5">Your Cart: <b>{cartItems.length} items</b></h2>
         
         <div className="row d-flex justify-content-between">
@@ -17,8 +64,8 @@ const CartPage = ({cartItems,setCartItems}) => {
                         </div>
 
                         <div className="col-5 col-lg-3">
-                            <Link to=""></Link>
-                            <a href="#">{item.product.name}, {item.product.description}</a>
+                            <Link to={"/product/"+item.product._id}>{item.product.name}, {item.product.description}</Link>
+                           
                         </div>
 
 
@@ -28,15 +75,15 @@ const CartPage = ({cartItems,setCartItems}) => {
 
                         <div className="col-4 col-lg-3 mt-4 mt-lg-0">
                             <div className="stockCounter d-inline">
-                                <span className="btn btn-danger minus">-</span>
-                                <input type="number" className="form-control count d-inline" value="1" readOnly />
+                                <span className="btn btn-danger minus" onClick={()=>decreaseQty(item)}>-</span>
+                                <input type="number" className="form-control count d-inline" value={item.qty} readOnly />
 
-								<span className="btn btn-primary plus">+</span>
+								<span className="btn btn-primary plus" onClick={()=>increaseQty(item)}>+</span>
                             </div>
                         </div>
 
                         <div className="col-4 col-lg-1 mt-4 mt-lg-0">
-                            <i id="delete_cart_item" className="fa fa-trash btn btn-danger"></i>
+                            <i id="delete_cart_item" className="fa fa-trash btn btn-danger" onClick={()=>removeItem(item)}></i>
                         </div>
 
                     </div>
@@ -50,16 +97,16 @@ const CartPage = ({cartItems,setCartItems}) => {
                 <div id="order_summary">
                     <h4>Order Summary</h4>
                     <hr />
-                    <p>Subtotal:  <span className="order-summary-values">{cartItems.length} (Units)</span></p>
-                    <p>Est. total: <span className="order-summary-values">&#8377;100</span></p>
+                    <p>Subtotal:  <span className="order-summary-values">{cartItems.reduce((acc,item)=>(acc+item.qty),0)} (Units)</span></p>
+                    <p>Est. total: <span className="order-summary-values">&#8377;{cartItems.reduce((acc,item)=>(acc+item.product.price*item.qty),0)}</span></p>
     
                     <hr />
-                    <button id="checkout_btn" className="btn btn-primary btn-block">Place Order</button>
+                    <button id="checkout_btn" className="btn btn-primary btn-block" onClick={placeOrderHandler}>Place Order</button>
                 </div>
             </div>
         </div>
     </div>
-  )
+    </Fragment>:(!complete ? <h2 className='mt-5'>Your cart is empty!</h2>: <Fragment><h2 className='mt-5'>Your order has been placed successfully!</h2></Fragment>)
 }
 
 export default CartPage
